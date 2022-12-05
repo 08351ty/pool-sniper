@@ -15,15 +15,21 @@ export const ABI_UniswapV2Factory = [
         name: "token1",
         type: "address"
       },
+      { indexed: true, internalType: "uint24", name: "fee", type: "uint24" },
+      {
+        indexed: false,
+        internalType: "int24",
+        name: "tickSpacing",
+        type: "int24"
+      },
       {
         indexed: false,
         internalType: "address",
-        name: "pair",
+        name: "pool",
         type: "address"
-      },
-      { indexed: false, internalType: "uint256", name: "", type: "uint256" }
+      }
     ],
-    name: "PairCreated",
+    name: "PoolCreated",
     type: "event"
   }
 ];

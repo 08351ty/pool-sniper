@@ -30,7 +30,7 @@ export default class Sniper {
   /**
    * Updates token and purchase details + sets up RPC
    * @param {string} tokenAddress of token to purchase
-   * @param {string} factoryAddress of Uniswap V2 Factory
+   * @param {string} factoryAddress of Uniswap V3 Factory
    * @param {string} rpcEndpoint for network
    * @param {string} privateKey of purchasing wallet
    * @param {string} purchaseAmount to swap with (input)
@@ -74,7 +74,9 @@ export default class Sniper {
     // Generate Uniswap pair
     const pair = new UniswapPair({
       // Base chain token to convert from
-      fromTokenContractAddress: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+      fromTokenContractAddress: !this.testnet 
+        ? "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"
+        : "0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889",
       // Desired token to purchase
       toTokenContractAddress: desiredTokenAddress,
       // Ethereum address of user
@@ -84,13 +86,18 @@ export default class Sniper {
         slippage: this.slippage, // Slippage config
         deadlineMinutes: 5, // 5m max execution deadline
         disableMultihops: false, // Allow multihops
-        uniswapVersions: [UniswapVersion.v2], // Only V2
-        cloneUniswapContractDetails: {
+        uniswapVersions: [UniswapVersion.v2, UniswapVersion.v3], // V2 and V3
+        cloneUniswapContractDetails: { // uniswap clone contracts (this is sushi)
           v2Override: {
             routerAddress: "0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
             factoryAddress: "0xc35dadb65012ec5796536bd9864ed8773abc74c4",
             pairAddress: "0xc35dadb65012ec5796536bd9864ed8773abc74c4"
-          }
+          },
+          // v3Override: {
+          //   routerAddress: ,
+          //   factoryAddress: ,
+          //   pairAddress:
+          // }
         },
         customNetwork: {
           nameNetwork: !this.testnet ? "polygon" : "mumbai",
@@ -103,7 +110,9 @@ export default class Sniper {
           },
           nativeWrappedTokenInfo: {
             chainId: !this.testnet ? 137 : 80001,
-            contractAddress: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+            contractAddress: !this.testnet 
+              ? "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"
+              : "0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889",
             decimals: 18,
             symbol: "WMATIC",
             name: "Wrapped Matic"
@@ -123,6 +132,7 @@ export default class Sniper {
     // Update trade gas price
     let tx: any = trade.transaction;
     tx.gasPrice = this.gasPrice;
+    tx.gasLimit = 200000;
 
     // Send and log trade
     const tradeTx = await this.wallet.sendTransaction(tx);
@@ -134,9 +144,15 @@ export default class Sniper {
    */
   async snipe(): Promise<void> {
     logger.info("Beginning to monitor UniswapV2Factory");
+    console.log("tokenAddress", this.tokenAddress)
+    console.log("purchaseAmount", this.purchaseAmount)
+    console.log("gasPrice", this.gasPrice)
+    console.log("slippage", this.slippage)
+    console.log("testnet", this.testnet)
+    console.log("wallet address: ", this.wallet.address)
 
     // Listen for pair creation
-    this.factory.on("PairCreated", async (token0: string, token1: string) => {
+    this.factory.on("PoolCreated", async (token0: string, token1: string) => {
       // Log new created pairs
       logger.info(`New pair: ${token0}, ${token1}`);
 
